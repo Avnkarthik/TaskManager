@@ -4,8 +4,10 @@ import { date } from "zod";
 export const dbconnection=async()=>{
     try{
     
-    await mongoose.connect("mongodb+srv://codesurfers:avn@codeforce2025@mydatabase.qsqf5jj.mongodb.net/?retryWrites=true&w=majority&appName=mydatabase");
+    await mongoose.connect("mongodb+srv://user1:ANNA2004@mydatabase.qsqf5jj.mongodb.net/?retryWrites=true&w=majority&appName=mydatabase").then(()=>{
    console.log("Database connected Succesfully");
+    })
+  
     }catch(error){
         console.log("some error:",error);
 
