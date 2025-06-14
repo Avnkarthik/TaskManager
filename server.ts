@@ -1,29 +1,34 @@
-import express, { Request, Response, NextFunction } from "express";
-import { dbconnection, Usermodel } from "./database";
-
+import express from "express";
+import { controll } from "./routes";
+import { dbconnection } from "./database";
+import session from "express-session";
+import MongoStore from "connect-mongo";
+import dotenv from "dotenv";
+dotenv.config();
 const app = express();
 
-// Middleware to parse JSON requests
+
 app.use(express.json());
+const sessionOptions: session.SessionOptions = {
+  secret: process.env.SESSION_SECRET!, 
+  resave: false,
+  saveUninitialized: true,
+  store: MongoStore.create({
+    mongoUrl: process.env.dburl!,
+    collectionName: 'sessions'
+  }),
+  cookie: { maxAge: 1000 * 60 * 60 * 24 } 
+};
 
-// Connect to the database
-const db=dbconnection()
-  .then(() => {
+app.use(session(sessionOptions));
+      
+
+  app.use(controll)
     app.listen(8020, () => {
-      console.log("Listening to port 8000");
+      console.log("Listening to port 8020");
     });
-  })
-  .catch((error: Error) => {
-    console.error("Failed to connect to database:", error);
-  });
-  const newuser=new Usermodel({
-    name:"Karthik",
-    email:"annakarthik@gmail",
-    password:"123@avn"
 
-  })
-  newuser.save().then(()=>{console.log("saves sucessfuly")});
-
+ 
 
 
 export default app;

@@ -1,11 +1,13 @@
+
 import  express  from "express";
 import mongoose,{Schema,model} from "mongoose";
-import { date } from "zod";
+import { date, string } from "zod";
+import dotenv from "dotenv";
 export const dbconnection=async()=>{
-    console.log("called dbconnection");
+   dotenv.config();
     try{
-      console.log("in try");
-    await mongoose.connect("mongodb+srv://codesurfers:Anna2004@mydatabase.qsqf5jj.mongodb.net/APPUSERS?retryWrites=true&w=majority&appName=mydatabase").then(()=>{
+     
+    await mongoose.connect(process.env.dburl!).then(()=>{
    console.log("Database connected Succesfully");
    return;
     })
@@ -43,9 +45,14 @@ let  events=new mongoose.Schema({
         required:true
 
     },
+    Eventdate:{
+        type:String,
+        required:true
+    },
     Eventtime:{
-        type:Date,
+        type:String,
         required:true
     }
 });
 export let Usermodel=model("user",user);
+export let TaskModel=model("Task",events);
