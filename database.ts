@@ -2,6 +2,7 @@
 import  express  from "express";
 import mongoose,{Schema,model} from "mongoose";
 import { date, string } from "zod";
+import "express-session";
 import dotenv from "dotenv";
 export const dbconnection=async()=>{
    dotenv.config();
@@ -54,5 +55,23 @@ let  events=new mongoose.Schema({
         required:true
     }
 });
+declare module 'express-session'{
+     interface SessionData{
+        user?:{  
+                id?:String|undefined,
+               name?:String|undefined,
+                email?:String|undefined,
+                googleAccessToken?:String,
+                googleRefreshToken?:String,
+                facebookAccessToken?:String,
+                facebookRefreshToken?:String,
+                twitterAccessToken?:String,
+                twitterRefreshToken?:string,
+                codeVerifier?:String
+           };
+    }
+
+
+}
 export let Usermodel=model("user",user);
 export let TaskModel=model("Task",events);
