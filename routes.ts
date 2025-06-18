@@ -1,6 +1,6 @@
 import express,{Router} from "express";
 
-import { taskval, userSchema, userval } from "./middleware";
+import { facebookRefresh, googleRefresh, taskval, twitterRefresh, userSchema, userval } from "./middleware";
 import { validationResult } from "express-validator";
 import { callbackTwitter, gettask, inserttasks, renotify, savesession, twitterauth, updatetask, userlogin } from "./api";
 import passport from "./OAuth";
@@ -18,6 +18,6 @@ controll.get("/google",passport.authenticate('google',{scope:['email','profile',
 controll.get("/auth/google",passport.authenticate('google',{failureRedirect:"/dashboard?failure"}),savesession);
 controll.get("/twitter",twitterauth);
 controll.get("/auth/twitter",callbackTwitter);
-controll.get("/facebook",passport.authenticate('facebook',{scope:['email','public_profile','user_events']}));
-controll.get("auth/facebook",passport.authenticate('facebook',{failureRedirect:"/dashboard?failure"}),savesession);
-controll.get("/refreshNotif",renotify)
+controll.get("/facebook",passport.authenticate('facebook',{scope:['public_profile']}));
+controll.get("/auth/facebook",passport.authenticate('facebook',{failureRedirect:"/dashboard?failure"}),savesession);
+controll.get("/refreshNotif",googleRefresh,twitterRefresh,facebookRefresh,renotify);

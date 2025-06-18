@@ -17,6 +17,13 @@ res.status(200).json( await TaskModel.find());
 
 
 } ;
+
+
+//inserting tasks
+
+
+
+
 export const inserttasks=async (req:Request,res:Response)=>{
     await dbconnection();
     let errors=validationResult(req);
@@ -31,6 +38,11 @@ export const inserttasks=async (req:Request,res:Response)=>{
 
 
 };
+
+
+//updating tasks
+
+
 export const updatetask=async (req:Request,res:Response)=>{
     await dbconnection();
    let id=req.params.id;
@@ -40,6 +52,12 @@ export const updatetask=async (req:Request,res:Response)=>{
   let dbres= await  newobj.save()
     res.json(204).json(dbres);
 };
+
+
+//logging in for new user
+
+
+
 export const userlogin=async (req:Request,res:Response)=>{
 await dbconnection();
 let result;
@@ -54,7 +72,7 @@ let newobj=new Usermodel(req.body);
 
 res.status(201).json({mssg:"inserted",obj:result});
 };
-export const authenticated=async (req:Request,res:Response)=>{
+/*export const authenticated=async (req:Request,res:Response)=>{
   let response;
   if(req.query.sucessbygoogle){
      response=await axios.post('https://oauth2.googleapis.com/token', {
@@ -75,7 +93,7 @@ googleaccessToken:google_access_token,
 
 
 
-}*/
+}
 }
 req.session.save(() => {
   res.redirect('/dashboard'); 
@@ -88,11 +106,19 @@ req.session.save(() => {
 
   }
 
-};
+};*/
+
+
+//saving user tikens using session
+
+
+
+
 export const savesession=(req:Request,res:Response)=>{
   console.log("Save sesssion");
  
-  req.session.user=req.user as typeof req.session.user;
+ // req.session.user=req.user as typeof req.session.user;
+ req.session.user={...req.session.user,...req.user};
   console.log(req.session.user);
   req.session.save((err)=>{
     if(err){
@@ -103,6 +129,14 @@ export const savesession=(req:Request,res:Response)=>{
   res.redirect("/dashboard");
   
 };
+
+
+
+
+//refetch data from social media apps
+
+
+
 export const renotify=async (req:Request,res:Response)=>{
  if(req.session.user===undefined)
  res.status(401).json({mssg:req.session.user});
@@ -110,18 +144,24 @@ console.log("in renotify");
   //  setInterval(async ()=>{
       console.log("in set intervel");
       if(req.session.user!==undefined){ 
-        let twitterEvents,googleEvents; 
+        let twitterEvents,googleEvents,facebookEvents; 
         if(req.session.user.googleAccessToken!==undefined){ 
+          console.log("in gg api");
    googleEvents=await fetchGoogleEvents(req.session.user.googleAccessToken);
         }
-  //const facebookEvents=await fetchFacebookEvents(req.session.user.facebookAccessToken);
+        if(req.session.user.facebookAccessToken!==undefined){
+          console.log("in fb api");
+  // facebookEvents=await fetchFacebookEvents(req.session.user.facebookAccessToken);
+        }
   if(req.session.user.twitterAccessToken){
-   twitterEvents=await fetchTwitterEvents(req.session.user.twitterAccessToken);
+    console.log("in twit api");
+  // twitterEvents=await fetchTwitterEvents(req.session.user.twitterAccessToken);
         }
  // res.send({ge:googleEvents,fe:facebookEvents,te:twitterEvents});
- console.log("googleEvents",googleEvents);
- console.log("twitter Events",twitterEvents);
- res.send({googmssg:googleEvents[0].summary,twittermssg:twitterEvents||""});
+ //console.log("googleEvents",googleEvents);
+// console.log("twitter Events",twitterEvents);
+// console.log("facebook Events:",facebookEvents);
+ res.send({googmssg:googleEvents,twittermssg:twitterEvents||"",facebookmssg:facebookEvents||""});
  
       }
 
@@ -129,7 +169,11 @@ console.log("in renotify");
    // },100);
  };
  dotenv.config();
- 
+
+
+ //twitter Authentication
+
+
  export const twitterauth=async (req:Request,res:Response)=>{
   if(req.session.user===undefined)
     res.status(401).json({mssg:"not valid user"});
@@ -145,6 +189,13 @@ console.log("in renotify");
   res.redirect(authUrl);
   }
  };
+
+
+
+ //callback for twitter
+
+
+
  export const callbackTwitter=async (req:Request,res:Response)=>{
   console.log("in call back");
   const clientIdSecret = `${process.env.TWITTER_CLIENT_ID}:${process.env.TWITTER_CLIENT_SECRET}`;
@@ -175,9 +226,7 @@ const encodedCredentials = Buffer.from(clientIdSecret).toString('base64');
 
     
     req.session.user = {
-      // id: profile.id,
- // name: profile.displayName,
- // email: profile.emails?.[0]?.value || '',
+     
       twitterAccessToken: access_token,
       twitterRefreshToken: refresh_token
     };

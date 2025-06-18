@@ -7,6 +7,11 @@ import crypto from "crypto";
 import dotenv from "dotenv"
 dotenv.config();
 console.log(process.env.GOOGLE_CLIENT_ID);
+
+
+//google strategy
+
+
 passport.use(new GoogleStrategy({
     clientID:process.env.GOOGLE_CLIENT_ID!,
     clientSecret:process.env.GOOGLE_CLIENT_SECRET!,
@@ -21,11 +26,16 @@ passport.use(new GoogleStrategy({
    googleRefreshToken:refreshToken
   }
  return done(null,user)}));
+
+
+ //facebook strategy
+
+
  passport.use(new FacebookStrategy({
     clientID:process.env.FACEBOOK_CLIENT_ID!,
     clientSecret:process.env.FACEBOOK_CLIENT_SECRET!,
     callbackURL:"http://localhost:8020/auth/facebook",
-    profileFields: ['id', 'displayName', 'emails']
+    profileFields: ['id', 'displayName']
 
  },async (accessToken,refreshToken,profile,done)=>{
    const user={
@@ -37,6 +47,13 @@ passport.use(new GoogleStrategy({
   }
     return done(null,user)
  }));
+
+
+
+ // twitter strategy for OAuth 1.0
+
+
+
  passport.use(new TwitterStrategy({
    authorizationURL: 'https://twitter.com/i/oauth2/authorize',
   tokenURL: 'https://api.twitter.com/2/oauth2/token',
@@ -57,6 +74,13 @@ passport.use(new GoogleStrategy({
    }
    return done(null, user);
 }));
+
+
+//code verifier and code challenge for twitter OAuth 2.0
+
+
+
+
  export function generateCodeVerifier() {
   return crypto.randomBytes(32).toString('base64url');
 }

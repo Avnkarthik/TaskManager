@@ -1,7 +1,8 @@
 import axios from "axios";
 import "express-session"
+import  dotenv from "dotenv";
 
-
+dotenv.config();
 export async function fetchGoogleEvents(accessToken: String) {
     console.log("in google api");
     console.log(accessToken);
@@ -19,17 +20,19 @@ export async function fetchGoogleEvents(accessToken: String) {
 export async function fetchFacebookEvents(accessToken: String) {
      console.log("in fb api");
      console.log(accessToken);
-  const response = await axios.get(`https://graph.facebook.com/v12.0/me/events?access_token=${accessToken}`);
-   console.log(response);
+  const response = await axios.get(`https://graph.facebook.com/v12.0/me/events?fields=id,name,start_time,end_time,place&access_token=${accessToken}`);
+  console.log("sucess on fb");
+  // console.log(response);
   return response.data.data;
 }
 
 export async function fetchTwitterEvents(accessToken: String) {
      console.log("in tw api");
      console.log(accessToken);
-  const response = await axios.get(`https://api.twitter.com/2/tweets/search/recent?query=event`, {
+  const response = await axios.get(`https://api.twitter.com/2/tweets/search/recent?query=event&tweet.fields=created_at,author_id`, {
     headers: { Authorization: `Bearer ${accessToken}` }
   });
+  console.log("sucess on twit");
   return response.data.data;
 }
 
