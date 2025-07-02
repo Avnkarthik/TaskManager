@@ -32,12 +32,15 @@ passport.use(new GoogleStrategy({
 
 
  passport.use(new FacebookStrategy({
+   
     clientID:process.env.FACEBOOK_CLIENT_ID!,
     clientSecret:process.env.FACEBOOK_CLIENT_SECRET!,
-    callbackURL:"http://localhost:8020/auth/facebook",
-    profileFields: ['id', 'displayName']
+    callbackURL:"http://localhost:8020/auth/facebook/callback",
+    profileFields:["id","name"],
+    
 
  },async (accessToken,refreshToken,profile,done)=>{
+   //console.log("✅ Facebook profile:");
    const user={
       id:profile.id,
    name:profile.name,
