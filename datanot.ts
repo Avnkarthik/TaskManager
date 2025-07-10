@@ -1,6 +1,7 @@
 import axios from "axios";
 import "express-session"
 import  dotenv from "dotenv";
+import {google} from "googleapis"
 
 dotenv.config();
 export async function fetchGoogleEvents(accessToken: string) {
@@ -16,6 +17,41 @@ export async function fetchGoogleEvents(accessToken: string) {
   return (err);
 }
   
+}
+export async function fetchGmailEvents(accessToken:string){
+   const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+
+  const gmail = google.gmail({ version: 'v1', auth });
+
+  try {
+    const response = await gmail.users.messages.list({
+      userId: 'me',
+      labelIds: ['INBOX'],
+      maxResults: 10,
+    });
+
+    const messages = response.data.messages || [];
+
+    const detailedMessages = await Promise.all(
+      messages.map((msg) =>
+        gmail.users.messages.get({ userId: 'me', id: msg.id! })
+      )
+    );
+
+    const parsed = detailedMessages.map((msg) => ({
+      id: msg.data.id,
+      snippet: msg.data.snippet,
+      from: msg.data.payload?.headers?.find((h) => h.name === 'From')?.value,
+      subject: msg.data.payload?.headers?.find((h) => h.name === 'Subject')?.value,
+      date: msg.data.payload?.headers?.find((h) => h.name === 'Date')?.value,
+    }));
+
+    return (parsed);
+  } catch (err) {
+    console.error('Gmail fetch error:', err);
+  }
+
 }
 
 export async function fetchFacebookEvents(accessToken: string) {
@@ -78,5 +114,15 @@ export const normalizeTwitter = (tweet: any, userId: String) => ({
   link: `https://twitter.com/i/web/status/${tweet.id}`,
   sourceId: tweet.id,
   raw: tweet,
+  userId
+});
+
+export const normalizeGmail = (event: any, userId: String) => ({
+  platform: "Google",
+  title: event.snippet,
+  description: event.subject,
+  startTime: event.date,
+  sourceId: event.id,
+  raw: event,
   userId
 });
