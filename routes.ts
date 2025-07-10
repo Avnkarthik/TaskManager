@@ -2,8 +2,9 @@ import express,{NextFunction, Router,Request,Response} from "express";
 
 import { facebookRefresh, googleRefresh, stateMiddleware, taskval, twitterRefresh, userSchema, userval } from "./middleware";
 import { validationResult } from "express-validator";
-import { callbackTwitter, gettask, inserttasks, renotify, fbSaveSession, twitterauth, updatetask, userlogin, googleSaveSession, dashboard, facebookhandler, UserName, logout, fbEvents, twitEvents, SortedEvents } from "./api";
+import { callbackTwitter, gettask, inserttasks, renotify, fbSaveSession, twitterauth, updatetask, userlogin, googleSaveSession, dashboard, facebookhandler, UserName, logout, fbEvents, twitEvents, SortedEvents, DeleteAccount, EmailEvents, Subscribe } from "./api";
 import passport from "./OAuth";
+
 
 
  
@@ -14,7 +15,7 @@ controll.post("/insert",taskval,inserttasks );
 controll.put("/update:id",updatetask);
 controll.post("/userlogin",userlogin);
 
-controll.get("/google",passport.authenticate('google',{scope:['email','profile','https://www.googleapis.com/auth/calendar'] ,prompt: 'consent',accessType: 'offline' }));
+controll.get("/google",passport.authenticate('google',{scope:['email','profile','https://www.googleapis.com/auth/calendar','https://www.googleapis.com/auth/gmail.readonly'] ,prompt: 'consent',accessType: 'offline' }));
 controll.get("/auth/google",passport.authenticate('google',{failureRedirect:"/dashboard?failure"}),googleSaveSession);
 controll.get("/twitter",twitterauth);
 controll.get("/auth/twitter",callbackTwitter);
@@ -38,3 +39,6 @@ controll.post("/logout",logout);
 controll.get("/facebookEvents",fbEvents);
 controll.get("/TwitterEvents",twitEvents);
 controll.get("/sortedEvents",SortedEvents);
+controll.post("/deleteAccount",DeleteAccount);
+controll.get("/emailEvents",EmailEvents);
+controll.post("/subscribe",Subscribe);
