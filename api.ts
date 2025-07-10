@@ -1,18 +1,14 @@
 import { validationResult } from "express-validator";
 import { dbconnection, FacebookUser, GoogleUser, mergedModel, TaskModel, UnifiedEvent, Usermodel } from "./database";
 import express,{NextFunction, Request,Response} from "express"
-import app from "./server";
 import dotenv from "dotenv"
-import MongoStore from "connect-mongo";
-import session,{SessionOptions} from "express-session"
 import axios from "axios";
-import { profile } from "console";
 import passport from "passport";
-import { fetchFacebookEvents, fetchGoogleEvents, fetchTwitterEvents, normalizeFacebook, normalizeGoogle, normalizeTwitter } from "./datanot";
+import { fetchFacebookEvents, fetchGmailEvents, fetchGoogleEvents, fetchTwitterEvents, normalizeFacebook, normalizeGmail, normalizeGoogle, normalizeTwitter } from "./datanot";
 import { codeChallenge, codeVerifier, generateCodeChallenge, generateCodeVerifier } from "./OAuth";
 import { createToken, googleRefresh, twitterRefresh, verifyToken } from "./middleware";
-import { isPartOfTypeOnlyImportOrExportDeclaration } from "typescript";
-import { string } from "zod";
+import webpush from "web-push";
+import schedule from "node-schedule"
 dotenv.config();
 export const gettask=async (req:Request,res:Response)=>{
  await dbconnection();
@@ -267,36 +263,45 @@ export const renotify=async (req:Request,res:Response)=>{
           return;
         }
      
-            let twitterEvents,googleEvents,facebookEvents; 
-            if(UserData?.googleAccessToken!==undefined){
+            let twitterEvents,googleEvents,facebookEvents,gmailEvents; 
+            if(UserData?.googleAccessToken!==undefined && UserData.googleAccessToken!=null){
 
                   console.log("in gg api");
                   googleEvents=await fetchGoogleEvents(UserData.googleAccessToken!);
+                  gmailEvents=await fetchGmailEvents(UserData.googleAccessToken);
+
+                  
    
             }
-           if(UserData.facebookAccessToken!==undefined){
+         /*  if(UserData.facebookAccessToken!==undefined){
                     console.log("in fb api");
                     facebookEvents=await fetchFacebookEvents(UserData.facebookAccessToken!);
              }
           if(UserData.twitterAccessToken){
                     console.log("in twit api");
-                  //  twitterEvents=await fetchTwitterEvents(UserData.twitterAccessToken);
+                    twitterEvents=await fetchTwitterEvents(UserData.twitterAccessToken);
             }
               // res.send({ge:googleEvents,fe:facebookEvents,te:twitterEvents});
               console.log("googleEvents",googleEvents);
-             //  console.log("twitter Events",twitterEvents);
-             //  console.log("facebook Events:",facebookEvents);
+              console.log("twitter Events",twitterEvents);
+             //  console.log("facebook Events:",facebookEvents);*/
             
               let userId=UserData._id.toString();
               if(userId!==undefined){
                    const events: any[] = [];
-                   if (googleEvents) events.push(...googleEvents.map((e:any) => normalizeGoogle(e, userId)));
-                   if (facebookEvents) events.push(...facebookEvents.map((e:any)=> normalizeFacebook(e, userId)));
+                   if (googleEvents){
+
+                    events.push(...googleEvents.map((e:any) => normalizeGoogle(e, userId)));
+                    if(gmailEvents)
+                    events.push(...gmailEvents.map((e:any)=>normalizeGmail(e,userId)))
+
+                   }
+                //   if (facebookEvents) events.push(...facebookEvents.map((e:any)=> normalizeFacebook(e, userId)));
              // if (twitterEvents) events.push(...twitterEvents.map((e:any)=> normalizeTwitter(e, userId)));
                   //  console.log(events.map(e => [e.platform, e.userId]));
                   
                 try{ 
-                    await UnifiedEvent.insertMany(events);
+                   await UnifiedEvent.insertMany(events);
                     res.json({ message: "Events stored", events:events });
                 } catch (err) {
                      console.error("Ingest error:", err);
@@ -495,25 +500,27 @@ if (!req.session.user.name && userData.name) {
 
  };
  export const UserName=async(req:Request,res:Response)=>{
-       let googleAT,facebookAT,twitterAT;
+       let googleAT=false,facebookAT=false,twitterAT=false;
 
       if(req.session.user?.email){
        await  dbconnection();
+      
        const email=req.session.user.email;
         const UserData=await mergedModel.findOne({email:email});
           if(UserData){
-        if(UserData.googleAccessToken!==undefined||UserData.googleAccessToken!==null)
+           //  console.log("google",UserData?.googleAccessToken);
+        if(UserData.googleAccessToken!==undefined &&  UserData.googleAccessToken!==null)
             googleAT=true;
-           if(UserData.facebookAccessToken!==undefined||UserData.facebookAccessToken!==null)
+           if(UserData.facebookAccessToken!==undefined && UserData.facebookAccessToken!==null)
             facebookAT=true;
-           if(UserData.twitterAccessToken!==undefined||UserData.twitterAccessToken!==null)
+           if(UserData.twitterAccessToken!==undefined && UserData.twitterAccessToken!==null)
             twitterAT=true;
 
       }
     }
     
-      
-       
+    
+      // console.log("User details:",googleAT,facebookAT,twitterAT);
       if(req.session.user?.name&& req.session.user?.email)
         res.json({name:req.session.user.name,email:req.session.user.email,googleAT,facebookAT,twitterAT});
       else 
@@ -558,7 +565,7 @@ if (!req.session.user.name && userData.name) {
           return;
         }
         let facebookEvents="";
-         if(UserData.facebookAccessToken!==undefined){
+         if(UserData.facebookAccessToken!==undefined&&UserData.facebookAccessToken!=null){
                     console.log("in fb api");
                     facebookEvents=await fetchFacebookEvents(UserData.facebookAccessToken!);
                     console.log(facebookEvents);
@@ -597,7 +604,7 @@ if (!req.session.user.name && userData.name) {
           return;
         }
         let twitterEvents;
-         if(UserData.twitterAccessToken!==undefined){
+         if(UserData.twitterAccessToken!==undefined&&UserData.twitterAccessToken!=null){
                     console.log("in twit api");
                     twitterEvents=await UnifiedEvent.find({platform:"Twitter"});
                    // twitterEvents=await fetchTwitterEvents(UserData.facebookAccessToken!);
@@ -780,4 +787,121 @@ export const SortedEvents = async (req: Request, res: Response): Promise<void>  
     console.error("Error in SortedEvents:", error);
     res.status(500).json({ error: "Internal server error", details: (error as Error).message });
   }
+};
+
+export const DeleteAccount=async (req:Request,res:Response)=>{
+  const prov=req.query.prov as string;
+  const email=req.session.user?.email;
+  if(!email){
+    res.status(401).json("User not authenticated");
+    return;
+  }
+  dbconnection();
+
+  if(prov=='google'){
+    await mergedModel.updateOne({email:email},{$set:{
+      googleAccessToken:null,
+      googleRefreshToken:null,
+    }})
+
+  }else if(prov=='facebook'){
+     await mergedModel.updateOne({email:email},{$set:{
+      facebookAccessToken:null,
+      facebookRefreshToken:null,
+    }})
+
+  }else if(prov=='twitter'){
+    await  mergedModel.updateOne({email:email},{$set:{
+      twitterAccessToken:null,
+      twitterRefreshToken:null,
+    }})
+
+  }
+  res.status(200).json({mssg:"Account deleted sucessfully"});
+
+}
+
+
+export const EmailEvents=async(req:Request,res:Response)=>{
+  
+ console.log("in twit events");
+        const email=req.session.user?.email;
+       console.log("Eamil:",email);
+      if(!email){
+         console.log("No session found, redirecting...");
+    res.status(401).json({ message: 'Not authenticated' });
+    return;
+       
+        
+      }
+
+
+       await dbconnection();
+     
+      const UserData= await mergedModel.findOne({email:email});
+        if(!UserData){
+            console.log("no user in twit");
+
+          res.json({error:"no user"})
+          return;
+        }
+        let emailEvents;
+         if(UserData.googleAccessToken!==undefined){
+                    console.log("in twit api");
+                    
+                    emailEvents=await fetchGmailEvents(UserData.googleAccessToken!);
+                    console.log(emailEvents);
+                    res.json({message:"Data sent successfully",events:emailEvents});
+                    return;
+             }
+             else{
+              console.log("no user au  in google");
+              res.json({error:"no user is authenticated" });
+             }
+
+
+
+}
+
+
+
+
+export const Subscribe = (req: Request, res: Response) => {
+  const { subscription, task } = req.body;
+
+  
+  if (!subscription || !task || !task.time || !task.title) {
+     res.status(400).json({ error: 'Missing subscription or task data' });
+     return;
+  }
+
+  let scheduledDate = new Date(task.time);
+  console.log(scheduledDate)
+  const now = new Date();
+
+  // ✅ Prevent scheduling in the past
+  if (scheduledDate.getTime() <= now.getTime()) {
+     return;
+  }
+
+  const jobId = `${task.id}-${scheduledDate.getTime()}`;
+
+  const payload = JSON.stringify({
+    title: `🔔 ${task.title}`,
+    body: `🕒 ${task.time || '10:00 PM'} on ${task.platform || 'Custom'}\n📝 ${task.description || 'No details provided.'}`,
+    icon: '/icon-192.png',
+    data: {
+      url: task.link || 'http://localhost:5173/deadlines',
+    },
+  });
+
+  // ✅ Schedule the push notification
+  schedule.scheduleJob(jobId, scheduledDate, () => {
+    console.log(`📬 Sending push for "${task.title}" at ${scheduledDate}`);
+    webpush.sendNotification(subscription, payload).catch(console.error);
+  });
+
+  console.log(`📅 Scheduled push for "${task.title}" at ${scheduledDate.toISOString()} with job ID: ${jobId}`);
+
+  res.status(201).json({ message: 'Notification scheduled' });
 };
