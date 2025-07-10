@@ -7,11 +7,28 @@ import passport from "passport";
 import cookieParser from "cookie-parser";
 import cors from "cors"
 import { dbconnection, UnifiedEvent } from "./database";
+import bodyParser from "body-parser";
+import webpush from "web-push"
+import path from "path";
 dotenv.config();
 const app = express();
 
 
 app.use(express.json());
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'client')));
+dotenv.config();
+
+const publicVapidKey = process.env.VAPID_PUBLIC_KEY;
+const privateVapidKey =  process.env.VAPID_PRIVATE_KEY;
+
+
+webpush.setVapidDetails(
+  'mailto:annavarapukarthik0@gmail.com',
+  publicVapidKey!,
+  privateVapidKey!
+);
+
 app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true
