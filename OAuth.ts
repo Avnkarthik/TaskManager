@@ -12,11 +12,15 @@ console.log(process.env.GOOGLE_CLIENT_ID);
 //google strategy
 
 
-passport.use(new GoogleStrategy({
+const strategy=new GoogleStrategy({
     clientID:process.env.GOOGLE_CLIENT_ID!,
     clientSecret:process.env.GOOGLE_CLIENT_SECRET!,
     callbackURL:"http://localhost:8020/auth/google",
- scope: ['https://www.googleapis.com/auth/calendar','https://www.googleapis.com/auth/calendar.readonly']
+ scope: ['https://www.googleapis.com/auth/calendar',
+   'https://www.googleapis.com/auth/calendar.readonly',
+'https://www.googleapis.com/auth/gmail.readonly'
+ ] 
+
 },async(accessToken, refreshToken, profile, done)=>{
   const user={
    id:profile.id,
@@ -25,7 +29,15 @@ passport.use(new GoogleStrategy({
    googleAccessToken:accessToken,
    googleRefreshToken:refreshToken
   }
- return done(null,user)}));
+ return done(null,user)});
+
+strategy.authorizationParams = function () {
+  return {
+    access_type: 'offline',
+    prompt: 'consent'
+  };
+};
+passport.use(strategy);
 
 
  //facebook strategy
@@ -77,6 +89,7 @@ passport.use(new GoogleStrategy({
    }
    return done(null, user);
 }));
+
 
 
 //code verifier and code challenge for twitter OAuth 2.0
