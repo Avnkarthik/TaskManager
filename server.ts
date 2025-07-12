@@ -30,7 +30,8 @@ webpush.setVapidDetails(
 );
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin:[ 'http://localhost:5173',"https://smarteventmanager.netlify.app"],
+
   credentials: true
 }))
 app.use(cookieParser())
@@ -43,11 +44,13 @@ app.use(session({
     dbName:"APPUSERS",
     collectionName: 'sessions'
   }),
-  cookie: { maxAge: 1000 * 60 * 60 * 24 ,
-    httpOnly: true,
-      secure: false,
-      sameSite:"lax"
-  } 
+ cookie: {
+  maxAge: 1000 * 60 * 60 * 24,
+  httpOnly: true,
+          secure:true,// must be true if frontend uses HTTPS (Netlify does!)
+  sameSite: "none"       // to allow cross-site cookies
+}
+
 }));
 app.use(passport.initialize());
 app.use(passport.session());
