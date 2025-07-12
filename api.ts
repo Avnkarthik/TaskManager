@@ -426,7 +426,7 @@ export const renotify=async (req:Request,res:Response)=>{
 export const dashboard = async (req:Request,res:Response)=>{
     //console.log("in  dashboard")
 
-
+dotenv.config();
   try {
     const token = req.query.token as string;
     if (!token) {
@@ -439,9 +439,10 @@ export const dashboard = async (req:Request,res:Response)=>{
       res.status(401).json({mssg:"Invalid token"});
       return;
     }
-
-console.log("family name:",userData.familyName);
-console.log("givenName:",userData.givenName);
+  if(userData.name){
+console.log("family name:",userData.name.familyName);
+console.log("givenName:",userData.name.givenName);
+  }
     if(!req.session.user)
        req.session.user={};
       if( !req.session.user?.email&& userData.email)
@@ -490,7 +491,9 @@ if (!req.session.user.name && userData.name) {
       <pre>${JSON.stringify(userData, null, 2)}</pre></br>
       
     `);*/
-    res.redirect(`http://localhost:5173/connections?email=${userData.email}&provider=${userData.provider}`)
+    console.log("Redirecting to:", process.env.front_end);
+   res.redirect(`${process.env.front_end}/connections?email=${userData.email}&provider=${userData.provider}`)
+  // res.redirect("http://localhost:5173/connections");
   } catch (error: any) {
     console.error("Dashboard error:", error);
     res.status(500).send("Invalid or expired token.");
@@ -501,11 +504,14 @@ if (!req.session.user.name && userData.name) {
  };
  export const UserName=async(req:Request,res:Response)=>{
        let googleAT=false,facebookAT=false,twitterAT=false;
-
-      if(req.session.user?.email){
+       // const email=req.query.email;
+        // console.log("email",email);
+      if(req.session.user){
        await  dbconnection();
       
+      
        const email=req.session.user.email;
+      
         const UserData=await mergedModel.findOne({email:email});
           if(UserData){
            //  console.log("google",UserData?.googleAccessToken);
@@ -868,6 +874,7 @@ export const EmailEvents=async(req:Request,res:Response)=>{
 
 export const Subscribe = (req: Request, res: Response) => {
   const { subscription, task } = req.body;
+  dotenv.config();
 
   
   if (!subscription || !task || !task.time || !task.title) {
@@ -891,7 +898,7 @@ export const Subscribe = (req: Request, res: Response) => {
     body: `🕒 ${task.time || '10:00 PM'} on ${task.platform || 'Custom'}\n📝 ${task.description || 'No details provided.'}`,
     icon: '/icon-192.png',
     data: {
-      url: task.link || 'http://localhost:5173/deadlines',
+      url: task.link || `${process.env.front_end}/deadlines`,
     },
   });
 
